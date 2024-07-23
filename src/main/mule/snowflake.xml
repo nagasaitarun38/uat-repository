@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d950d43c-7673-4906-a643-393f7021376f" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<snowflake:snowflake-config name="Snowflake_Config" doc:name="Snowflake Config" doc:id="71bc75e1-aa7c-4340-80cf-5210e42351d2" >
+		<snowflake:snowflake-connection accountName="qh01152.central-india.azure" warehouse="COMPUTE_WH" database="SAI" schema="PUBLIC" user="saisai" password="Tarun@12345" role="ACCOUNTADMIN" />
+	</snowflake:snowflake-config>
+	<flow name="snowflakeFlow" doc:id="e20b50d3-5115-4fb2-a1db-17a1e4e02c2c" >
+		<http:listener doc:name="Listener" doc:id="cb8c24cf-602f-4ed7-840c-8228057d86d5" config-ref="HTTP_Listener_config" path="/select"/>
+		<snowflake:select doc:name="Select" doc:id="f0597432-fcc0-4b76-be67-8b702a43aa07" config-ref="Snowflake_Config">
+			<snowflake:sql ><![CDATA[select * from saidetails]]></snowflake:sql>
+		</snowflake:select>
+		<ee:transform doc:name="Transform Message" doc:id="e91e992d-1645-4ce3-a723-8364bf253677" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="snowflakeFlow1" doc:id="073a82d3-27b0-47c1-846a-c111557e9282" >
+		<http:listener doc:name="Listener" doc:id="23203ce1-2ad0-4163-a380-a4eefbba8eb6" config-ref="HTTP_Listener_config" path="/insert"/>
+		<snowflake:insert doc:name="Insert" doc:id="a8fc2314-8f3e-4f7e-941c-1bd2cfceaf4b" config-ref="Snowflake_Config">
+			<snowflake:sql ><![CDATA[insert into saidetails values(:id,:firstname,:lastname)]]></snowflake:sql>
+			<snowflake:input-parameters ><![CDATA[#[{
+"id":payload.id,
+"firstname":payload.firstname,
+"lastname":payload.lastname
+}]]]></snowflake:input-parameters>
+		</snowflake:insert>
+		<ee:transform doc:name="Transform Message" doc:id="3cfe8f29-db3d-492e-8afd-762b8fed1c28" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="snowflakeFlow2" doc:id="7f5971aa-78d7-40cb-a4ab-0c4686a45090" >
+		<http:listener doc:name="Listener" doc:id="f4bdaaa9-7ee5-4187-be5a-2aed373100ca" config-ref="HTTP_Listener_config" path="/update"/>
+		<snowflake:update doc:name="Update" doc:id="6b73ec8e-560d-4d8e-b6f9-f37d128f7838" config-ref="Snowflake_Config" >
+			<snowflake:sql ><![CDATA[update saidetails set FIRSTNAME=:firstname where ID=:id]]></snowflake:sql>
+			<snowflake:input-parameters ><![CDATA[#[{
+	id:attributes.queryParams.id,
+	firstname:attributes.queryParams.firstname
+}]]]></snowflake:input-parameters>
+		</snowflake:update>
+		<ee:transform doc:name="Transform Message" doc:id="cc6401ef-31f3-422e-ae66-b2462836be75" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="snowflakeFlow3" doc:id="c64920b6-3cc8-470c-8cce-4acda767d9c3" >
+		<http:listener doc:name="Listener" doc:id="baec425d-8645-466d-8d96-e8e9fb924bea" config-ref="HTTP_Listener_config" path="/bulkinsert"/>
+		<snowflake:bulk-insert doc:name="Bulk insert" doc:id="945d1c8b-b337-4c8d-b558-b44e8d8099cf" config-ref="Snowflake_Config">
+			<snowflake:sql ><![CDATA[insert into saidetails values(:id,:firstname,:lastname)]]></snowflake:sql>
+		</snowflake:bulk-insert>
+		<ee:transform doc:name="Transform Message" doc:id="9aacb508-0ba6-4248-b41a-79227b2d8af7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
